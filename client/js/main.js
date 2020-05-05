@@ -1,6 +1,5 @@
 
-
-var signalingSocket = new WebSocket("ws://192.168.100.3:8080");
+var signalingSocket = new WebSocket("wss://localhost:8443");
 signalingSocket.onopen = onSocketOpen;
 
 var userName = "";
@@ -15,6 +14,7 @@ async function initCallRequest(users) {
     for (const user of users) {
         globalUsers[user] = new RTCPeerConnection();
         globalUsers[user].ontrack = onTrack;
+        globalUsers[user].ontrack = event => onTrack(globalUsers[user], event);
         const {track, stream} = await getVideoTrackAndStream();
         globalUsers[user].addTrack(track, stream);
         await globalUsers[user].setLocalDescription(await globalUsers[user].createOffer());
@@ -30,21 +30,30 @@ async function initCallRequest(users) {
     }
 }
 
-async function onTrack({track, streams}) {
+async function onTrack(pc, {track, streams}) {
+    console.log("on track");
     track.onunmute = () => {
+        console.log("on unmute");
+        console.log('state: ', pc.signalingState);
         document.querySelector("#video-frame").srcObject = streams[0];
+    }
+
+    track.onmute = () => {
+        console.log("on mute");
+        console.log('state: ', pc.signalingState);
     }
 }
 
 async function makeAnswer(user, sdp) {
     if (!globalUsers[user]) {
         globalUsers[user] = new RTCPeerConnection();
-        globalUsers[user].ontrack = onTrack;
+        globalUsers[user].ontrack = event => onTrack(globalUsers[user], event);
         const {track, stream} = await getVideoTrackAndStream();
         globalUsers[user].addTrack(track, stream);
     }
     await globalUsers[user].setRemoteDescription(sdp);
     await globalUsers[user].setLocalDescription(await globalUsers[user].createAnswer());
+    console.log("state in make_answer: ", globalUsers[user].signalingState);
     const msg = {
         event: "offer_resp",
         body: {
@@ -57,7 +66,13 @@ async function makeAnswer(user, sdp) {
 }
 
 async function setRemoteSDP(user, sdp) {
-    await globalUsers[user].setRemoteDescription(sdp);
+    try {
+        await globalUsers[user].setRemoteDescription(sdp);
+        console.log("state in sdp: ", globalUsers[user].signalingState);
+    } catch(error) {
+        console.log("aaaa: ", error);
+    }
+
 }
 
 function handleMessage(message) {
