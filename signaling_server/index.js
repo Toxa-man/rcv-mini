@@ -7,7 +7,7 @@ const server = https.createServer({
   key: fs.readFileSync('../client/cert/key.pem')
 });
 
-server.listen(8443);
+server.listen(port = 8443, hostname = '0.0.0.0');
 
 const wss = new WebSocket.Server({ server: server});
 
@@ -16,6 +16,7 @@ console.log("started");
 var users = {};
 
 function handleConnectionRequest(ws, userName) {
+    console.log("Connection request from " + userName);
     users[userName] = ws;
     const usersList = Object.keys(users).filter(user => user !== userName);
     const msg = {
@@ -28,6 +29,7 @@ function handleConnectionRequest(ws, userName) {
 }
 
 function requestSDP(body) {
+    console.log("offer request from " + body.from + " to " + body.to);
     const msg = {
         event: "offer_req",
         body: body
@@ -37,6 +39,7 @@ function requestSDP(body) {
 }
 
 function initCallResponse(body) {
+    console.log("init call response from " + body.from + " to " + body.to);
     const msg = {
         event: "init_call_resp",
         body: body
@@ -45,9 +48,19 @@ function initCallResponse(body) {
     users[body.to].send(JSON.stringify(msg));
 }
 
+function forwardIceCandidate(body) {
+    console.log("forward ice candidate from " + body.from + " to " + body.to);
+    const msg = {
+        event: "new_remote_ice_req",
+        body: body
+    }
+
+    users[body.to].send(JSON.stringify(msg));
+}
+
+
 function handleMessage(ws, message) {
-    var msg = JSON.parse(message);
-    console.log("new message: ", msg);
+    const msg = JSON.parse(message);
     switch (msg.event) {
     case "conn_req":
         handleConnectionRequest(ws, msg.body.from);
@@ -58,6 +71,12 @@ function handleMessage(ws, message) {
     case "offer_resp":
         initCallResponse(msg.body);
         break;  
+    case "new_ice_cand_req":
+        forwardIceCandidate(msg.body);
+        break;
+    default:
+        console.log("unknown msg type: " + msg.event);
+        break;
     }
 
 }
@@ -66,7 +85,7 @@ function handleDisconnect(socket, code, reason) {
     for (const [userName, ws] of Object.entries(users)) {
         if (ws === socket) {
             delete users[userName];
-            console.log("Disconnect user: ", userName, " reason: ", reason);
+            console.log("Disconnect user: ", userName, " reason: ", reason, " code: ", code);
             console.log("userlist: ", users);
             break;
         }
@@ -74,7 +93,7 @@ function handleDisconnect(socket, code, reason) {
 }
 
 function incommingConnection(socket) {
-    console.log("new connection: ");
+    console.log("new connection");
     socket.on('message', message => handleMessage(socket, message));
     socket.on('close', (code, reason) => handleDisconnect(socket, code, reason));
 }

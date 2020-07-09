@@ -9,16 +9,20 @@
 <body>
     <p>Hello world</p>
     <div id="myDiv" >
-        <video id="video-frame" width="1270px" height="720px" style="border: thin solid;" autoplay playsinline></video><br>
-        <label for="username">Name:</label>
-        <input type="text" id="username" name="username">
-        <label for="conf-id">Conference id:</label>
-        <input type="text" id="conf-id" name="conf-id">
-        <button id="connect-btn">Connect</button><br><br>
-        <video id="self-video" width="360px" height="240px" style="border: thin solid; " autoplay playsinline></video><br>
+        <div id="participant-vids">
+
+        </div>
+        <div id="control">
+            <label for="username">Name:</label>
+            <input type="text" id="username" name="username">
+            <label for="conf-id">Conference id:</label>
+            <input type="text" id="conf-id" name="conf-id">
+            <button id="connect-btn">Connect</button><br><br>
+            <video id="self-video" width="360px" height="240px" style="border: thin solid; " autoplay playsinline></video><br>
+        </div>
     </div>
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script src='js/main.js'></script>
+    <script src='js/main.js' type="module"></script>
 </body>
 </html>
